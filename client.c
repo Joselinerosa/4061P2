@@ -6,18 +6,33 @@
 #include <fcntl.h>
 #include "client.h"
 
+
 // Global variables
 queue_t *chunk_queue;
 int digit_counts[10] = {0};
+#define MAX_SIZE 1024
+
 
 // Queue implementation functions
 queue_t* create_queue(int capacity) {
     // TODO: Implement queue creation
-    return NULL;
+    
+    chunk_queue = create_queue(capacity);
+    if (chunk_queue == NULL) {
+        fprintf(stderr, "Failed to create queue\n");
+        return NULL;
+}
 }
 
 void destroy_queue(queue_t *q) {
     // TODO: Free queue memory
+    if (q != NULL) {
+        free(q->chunks);
+        free(q);
+    }   
+    else{
+        fprintf(stderr, "Queue is NULL, cannot destroy\n");
+    }
 }
 
 int enqueue(queue_t *q, chunk_t *chunk) {
@@ -53,10 +68,37 @@ int main(int argc, char *argv[]) {
     int qsize = atoi(argv[2]);
     int nthreads = atoi(argv[3]);
     int client_id = atoi(argv[4]);
+}
     
     // TODO: Initialize synchronization primitives
         
     // TODO: Create queue
+    typedef struct queue {
+    int front;
+    int rear;
+    int size;
+    int capacity;
+    chunk_t *chunks; // Array of chunks
+} queue_t;
+queue_t* create_queue(int qsize) {
+    queue_t* q = malloc(sizeof(queue_t));
+    if (q == NULL) {
+        fprintf(stderr, "Failed to allocate memory for queue\n");
+        return NULL;
+    }
+    q->capacity = qsize;
+    q->front = 0;
+    q->rear = 0;
+    q->size = 0;
+    q->chunks = malloc(qsize * sizeof(chunk_t));
+    if (q->chunks == NULL) {
+        fprintf(stderr, "Failed to allocate memory for queue chunks\n");
+        free(q);
+        return NULL;
+    }
+    return q;
+}   
+
         
     // TODO: Create worker threads
         
@@ -76,3 +118,4 @@ int main(int argc, char *argv[]) {
     
     return 0;
 }
+

@@ -11,17 +11,43 @@
 queue_t *chunk_queue;
 int digit_counts[10] = {0};
 #define MAX_SIZE 1024
+typedef struct chunk {
+    char data[MAX_SIZE]; // Buffer to hold chunk data
+    int length;          // Length of the data in the chunk
+} chunk_t;
+
+typedef struct queue {
+    int front;
+    int rear;
+    int size;
+    int capacity;
+    chunk_t *chunks; // Array of chunks
+} queue_t;
+
+
+
 
 
 // Queue implementation functions
-queue_t* create_queue(int capacity) {
+queue_t* create_queue(int qsize) {
     // TODO: Implement queue creation
     
-    chunk_queue = create_queue(capacity);
-    if (chunk_queue == NULL) {
-        fprintf(stderr, "Failed to create queue\n");
+    queue_t *q = malloc(sizeof(queue_t));
+    if (q == NULL) {
+        fprintf(stderr, "Failed to allocate memory for queue\n");
         return NULL;
+    }
+    q->capacity = qsize;
+    q->front = 0;
+    q->rear = 0;
+    q->size = 0;
+    q->chunks = malloc(qsize * sizeof(chunk_t));
+    if (q->chunks == NULL) {
+        fprintf(stderr, "Failed to allocate memory for queue chunks\n");
+        free(q);
+        return NULL;    
 }
+    return q;
 }
 
 void destroy_queue(queue_t *q) {
@@ -68,36 +94,21 @@ int main(int argc, char *argv[]) {
     int qsize = atoi(argv[2]);
     int nthreads = atoi(argv[3]);
     int client_id = atoi(argv[4]);
-}
+
     
     // TODO: Initialize synchronization primitives
         
     // TODO: Create queue
-    typedef struct queue {
-    int front;
-    int rear;
-    int size;
-    int capacity;
-    chunk_t *chunks; // Array of chunks
-} queue_t;
-queue_t* create_queue(int qsize) {
-    queue_t* q = malloc(sizeof(queue_t));
-    if (q == NULL) {
-        fprintf(stderr, "Failed to allocate memory for queue\n");
-        return NULL;
+    chunk_queue = create_queue(qsize);
+    if (chunk_queue == NULL) {
+        fprintf(stderr, "Failed to create queue\n");
+        return 1;
     }
-    q->capacity = qsize;
-    q->front = 0;
-    q->rear = 0;
-    q->size = 0;
-    q->chunks = malloc(qsize * sizeof(chunk_t));
-    if (q->chunks == NULL) {
-        fprintf(stderr, "Failed to allocate memory for queue chunks\n");
-        free(q);
-        return NULL;
+    else{
+        printf("Queue created with capacity %d\n", qsize);
     }
-    return q;
-}   
+
+
 
         
     // TODO: Create worker threads
@@ -115,7 +126,7 @@ queue_t* create_queue(int qsize) {
     // Destroy queue
     // Destroy mutexes and condition variables
     // Free allocated memory
-    
+    destroy_queue(chunk_queue);
     return 0;
 }
 

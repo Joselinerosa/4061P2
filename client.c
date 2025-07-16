@@ -11,6 +11,7 @@
 queue_t *chunk_queue;
 int digit_counts[10] = {0};
 #define MAX_SIZE 1024
+int done_reading = 0; // Flag to indicate if reading from file is complete
 
 //for synch
 pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -129,21 +130,35 @@ chunk_t* dequeue(queue_t *q) {
 }
 
 // Worker thread function
-void* worker_thread(void *arg) {
-    int thread_id = *(int*)arg;
-    free(arg); //free memory allocated for thread ID
+void *worker_thread(void *arg){
+    int *thread_id = *(int*)arg;
+    free(arg); // Free the memory allocated for thread ID
 
-    //for debugging, remove later*********
-    printf("Thread %d started.\n", thread_id);
-    pthread_exit(NULL); 
+    while(1){
+        pthread_mutex_lock(&queue_mutex);
+        while(chunk_queue->size == 0 && !done_reading) {
+            pthread_cond_wait(&not_empty, &queue_mutex); // Wait for chunks to be available
+        }
+        if (done_reading && chunk_queue->size == 0) {
+            pthread_mutex_unlock(&queue_mutex);
+            break; // Exit if done reading and queue is empty
+        }
+        chunk_t *chunk = dequeue(chunk_queue); // Dequeue a chunk from the queue
+        pthread_mutex_unlock(&queue_mutex); 
     
-    // TODO: Main worker loop
-    while (1) {
+    // Process the chunk data
+    for (int i = 0; i < chunk->length; i++) {
+        if (chunk->data[i] >= '0' && chunk->data[i] <= '9') {
+            pthread_mutex_lock(&queue_mutex); // Lock mutex to safely update digit counts
+            digit_counts[chunk->data[i] - '0']++; // Increment the count for the digit
+            pthread_mutex_unlock(&queue_mutex); // Unlock mutex after updating
+        }
     }
+        free(chunk); // Free the memory allocated for the chunk after processing
+    }
+    return NULL; // Exit the thread
+    }   
     
-    return NULL;
-}
-
 // Main function
 int main(int argc, char *argv[]) {
     // Parse command line arguments
@@ -228,12 +243,16 @@ int main(int argc, char *argv[]) {
         enqueue(chunk_queue, &chunk); // Enqueue the filled chunk into the shared queue for worker threads to process enqueue will block if the queue is full, ensuring synchronization
     }
     fclose(fp); //close file when done reading ALL chunks 
+    done_reading = 1; // Set the global flag to indicate that reading is complete   
+    pthread_cond_broadcast(&not_empty); 
+ 
 
 
 
 
         
     // TODO: Create worker threads
+
         
     // TODO: Open and read file in chunks
     // TODO: Read file in 1024-byte chunks

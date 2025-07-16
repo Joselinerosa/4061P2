@@ -88,7 +88,7 @@ int enqueue(queue_t *q, chunk_t *chunk) {
 
     
     q->chunks[q->rear] = *chunk; //copy chunk data into the position indicated by the rear index in the circular buffer
-    q->rear= [q->rear+1] % q->capacity; //update rear index to the NEXT slot in the circular queue, % wraps around when reaching the end of the array 
+    q->rear= (q->rear+1) % q->capacity; //update rear index to the NEXT slot in the circular queue, % wraps around when reaching the end of the array 
     q->size++; //must increment size to reflect the ADDED chunk 
 
     pthread_cond_signal(&not_empty); //signal the not_empty condition variable to wake up any threads WAITING to dequeu, queue not has at least one item
@@ -131,6 +131,11 @@ chunk_t* dequeue(queue_t *q) {
 // Worker thread function
 void* worker_thread(void *arg) {
     int thread_id = *(int*)arg;
+    free(arg); //free memory allocated for thread ID
+
+    //for debugging, remove later*********
+    printf("Thread %d started.\n", thread_id);
+    pthread_exit(NULL); 
     
     // TODO: Main worker loop
     while (1) {
@@ -165,6 +170,31 @@ int main(int argc, char *argv[]) {
         printf("Queue created with capacity %d\n", qsize);
     }
 
+//TASK 2
+    pthread_t *threads = malloc(nthreads *sizeof(pthread_t));
+    if (threads ==NULL) {
+        fprintf(stderr, "Failed to allocate memory for threads\n");
+        destroy_queue(chunk_queue);
+        return 1; 
+    }
+
+    for (int i =0; i< nthreads; i++){
+        int *thread_id = malloc(sizeof(int)); 
+        if (thread_id ==NULL) {
+            fprintf(stderr, "Failed to allocate memory for thread ID\n");
+            destroy_queue(chunk_queue);
+            free(threads);
+            return 1;
+        }
+        *thread_id =i;
+        if (pthread_create(&threads[i], NULL, worker_thread, thread_id) !=0){
+            fprintf(stderr, "Failed to create thread %d\n", i);
+            destroy_queue(chunk_queue);
+            free(threads);
+            return 1;
+        }
+    }
+
 
 
         
@@ -183,6 +213,12 @@ int main(int argc, char *argv[]) {
     // Destroy queue
     // Destroy mutexes and condition variables
     // Free allocated memory
+
+    for (int i = 0; i <nthreads; i++) {
+        pthread_join(threads[i], NULL);
+    }
+    free(threads);
+            
     destroy_queue(chunk_queue);
     return 0;
 }

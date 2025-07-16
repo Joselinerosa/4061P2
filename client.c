@@ -171,22 +171,31 @@ int main(int argc, char *argv[]) {
     }
 
 //TASK 2
+    // Allocate memory for an array to hold thread identifiers (pthread_t)
+    // Each element in this array corresponds to a single worker thread
     pthread_t *threads = malloc(nthreads *sizeof(pthread_t));
     if (threads ==NULL) {
+        // If allocation fails, print error message, clean up queue, and exit
         fprintf(stderr, "Failed to allocate memory for threads\n");
         destroy_queue(chunk_queue);
         return 1; 
     }
 
     for (int i =0; i< nthreads; i++){
+        // Allocate memory for an integer to hold the thread's ID
+        // This ID is passed to the thread function as argument
         int *thread_id = malloc(sizeof(int)); 
         if (thread_id ==NULL) {
+            // If allocation fails, print error message, clean up queue and previously allocated threads, then exit
             fprintf(stderr, "Failed to allocate memory for thread ID\n");
             destroy_queue(chunk_queue);
             free(threads);
             return 1;
         }
-        *thread_id =i;
+        *thread_id =i; // Assign current loop index as thread ID
+
+        // Create a new thread running the worker_thread function, passing thread_id as argument
+        // Store thread identifier in the threads array for later joining
         if (pthread_create(&threads[i], NULL, worker_thread, thread_id) !=0){
             fprintf(stderr, "Failed to create thread %d\n", i);
             destroy_queue(chunk_queue);
@@ -194,6 +203,32 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     }
+
+    //Task 3: File partitioning 
+    FILE *fp = fopen(filepath, "rb"); // Open the input file in binary read mode ("rb")
+    if (fp ==NULL){
+        fprintf(stderr, "Failed to open file %s\n", filepath);
+        //clean before exiting
+        destroy_queue(chunk_queue);
+        free(threads);
+        return 1;
+    }
+    
+    // Continuously read the file in chunks of size MAX_SIZE (1024 bytes)
+    while (1){
+        chunk_t chunk;// Create a temporary chunk to hold the read data
+
+        // fread attempts to read MAX_SIZE bytes from file into chunk.data
+        // Returns actual number of bytes read (could be less near EOF)
+        size_t bytes_read = fread(chunk.data, 1, MAX_SIZE, fp);
+        if (bytes_read ==0) { // If zero bytes are read, end of file reached; break the loop
+            break; 
+        }
+        chunk.length = (int)bytes_read; // Store the number of bytes actually read in chunk.length
+        enqueue(chunk_queue, &chunk); // Enqueue the filled chunk into the shared queue for worker threads to process enqueue will block if the queue is full, ensuring synchronization
+    }
+    fclose(fp); //close file when done reading ALL chunks 
+
 
 
 

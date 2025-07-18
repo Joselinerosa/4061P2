@@ -17,6 +17,7 @@ int done_reading = 0; // Flag to indicate if reading from file is complete
 pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t not_empty = PTHREAD_COND_INITIALIZER;
 pthread_cond_t not_full = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //struct def
 typedef struct chunk {
@@ -130,28 +131,23 @@ chunk_t* dequeue(queue_t *q) {
 }
 
 // Worker thread function
+//TASK 4
 void *worker_thread(void *arg){
-    int *thread_id = *(int*)arg;
+    int thread_id = *(int*)arg;
     free(arg); // Free the memory allocated for thread ID
 
     while(1){
-        pthread_mutex_lock(&queue_mutex);
-        while(chunk_queue->size == 0 && !done_reading) {
-            pthread_cond_wait(&not_empty, &queue_mutex); // Wait for chunks to be available
+        chunk_t *chunk = dequeue(chunk_queue);
+        if (!chunk) {
+            break;   
         }
-        if (done_reading && chunk_queue->size == 0) {
-            pthread_mutex_unlock(&queue_mutex);
-            break; // Exit if done reading and queue is empty
-        }
-        chunk_t *chunk = dequeue(chunk_queue); // Dequeue a chunk from the queue
-        pthread_mutex_unlock(&queue_mutex); 
     
     // Process the chunk data
     for (int i = 0; i < chunk->length; i++) {
         if (chunk->data[i] >= '0' && chunk->data[i] <= '9') {
-            pthread_mutex_lock(&queue_mutex); // Lock mutex to safely update digit counts
+            pthread_mutex_lock(&count_mutex); // Lock mutex to safely update digit counts
             digit_counts[chunk->data[i] - '0']++; // Increment the count for the digit
-            pthread_mutex_unlock(&queue_mutex); // Unlock mutex after updating
+            pthread_mutex_unlock(&count_mutex); // Unlock mutex after updating
         }
     }
         free(chunk); // Free the memory allocated for the chunk after processing
@@ -243,10 +239,11 @@ int main(int argc, char *argv[]) {
         enqueue(chunk_queue, &chunk); // Enqueue the filled chunk into the shared queue for worker threads to process enqueue will block if the queue is full, ensuring synchronization
     }
     fclose(fp); //close file when done reading ALL chunks 
+    pthread_mutex_lock(&queue_mutex); // Lock the queue mutex to safely update the done_reading flag
     done_reading = 1; // Set the global flag to indicate that reading is complete   
     pthread_cond_broadcast(&not_empty); 
- 
-
+    pthread_mutex_unlock(&queue_mutex); // Unlock the mutex to allow worker threads to proceed
+    pthread_mutex_destroy(&count_mutex); // Destroy the count mutex
 
 
 

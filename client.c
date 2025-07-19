@@ -110,6 +110,10 @@ chunk_t* dequeue(queue_t *q) {
     //if queue is empty, wait on the not_empty condition variable 
     //this means the consumer thread will sleep here until a producer signals that a chunk has been ENQUEUED 
     while (q->size==0) {
+        if (done_reading){
+            pthread_mutex_unlock(&queue_mutex); //if no more data is coming and queue is empty, return NULL to signal thread to exit
+            return NULL;
+        }
         pthread_cond_wait(&not_empty, &queue_mutex); //waits if queue is EMPTY, releases mutex and suspends thread until signaled 
     }
     //must allocate memory for a chunk pointer that will hold the dequeued data 
@@ -243,8 +247,6 @@ int main(int argc, char *argv[]) {
     done_reading = 1; // Set the global flag to indicate that reading is complete   
     pthread_cond_broadcast(&not_empty); 
     pthread_mutex_unlock(&queue_mutex); // Unlock the mutex to allow worker threads to proceed
-    pthread_mutex_destroy(&count_mutex); // Destroy the count mutex
-
 
 
         
@@ -269,8 +271,20 @@ int main(int argc, char *argv[]) {
         pthread_join(threads[i], NULL);
     }
     free(threads);
+
+    //TASK 7
+    printf("Digit counts:\n");
+    //loop through each index in the digit_counts array 
+    for (int i=0; i<10;i++){
+        printf("Digit %d: %d\n", i, digit_counts[i]); //print the total count for each digit collected by all worker threads
+    }
             
-    destroy_queue(chunk_queue);
+    destroy_queue(chunk_queue); //free all memory used to protect the queue structure (the enqueue and dequeue) 
+    pthread_mutex_destroy(&queue_mutex); //destroy the mutex used to protect the queue structure 
+    pthread_mutex_destroy(&count_mutex); //destroy the mutex used to protex updates to the digit_counts[] array 
+    pthread_cond_destroy(&not_empty); //destroy the condition variable by producer to WAIT when queue is FULL 
+    pthread_cond_destroy(&not_full); //destroy the condition variable used by consuerms to WAIT when queue is EMPTY 
+    
     return 0;
 }
 

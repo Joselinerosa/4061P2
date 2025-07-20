@@ -19,19 +19,6 @@ pthread_cond_t not_empty = PTHREAD_COND_INITIALIZER;
 pthread_cond_t not_full = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-//struct def
-typedef struct chunk {
-    char data[MAX_SIZE]; // Buffer to hold chunk data
-    int length; // Length of the data in the chunk
-} chunk_t;
-
-typedef struct queue {
-    int front;
-    int rear;
-    int size;
-    int capacity;
-    chunk_t *chunks; // ARRAY of chunks
-} queue_t;
 
 
 

@@ -13,6 +13,7 @@ Task 6: Joseline
 Task 7: Peyton 
 README.md: Peyton 
 5. Lab machine used: SSH trege006@csel-khl1260-17.cselabs.umn.edu 
+                     SSH rosa0168@csel-khl1260-17.cselabs.umn.edu 
 
 ## Design Specifications
 
@@ -34,6 +35,7 @@ Peyton:
 
 ## AI Tools Usage
 Peyton: I used AI to better understand pthread synchonization concepts in order to improve the queue implementation. 
+Joseline: I used AI to help me understand the concept of worker_thread to then implement it. 
 
 
 ## Additional Notes

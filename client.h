@@ -4,15 +4,25 @@
 #include <pthread.h>
 
 #define CHUNK_SIZE 1024
+#define MAX_SIZE 1024
+
 
 // Structure for a chunk of data
 // Add any code you think necessary to implement your design
+
 typedef struct chunk {
+    char data[MAX_SIZE]; // Buffer to hold chunk data
+    int length; // Length of the data in the chunk
 } chunk_t;
 
 // Structure for the queue
 // Add any code you think necessary to implement your design
 typedef struct queue {
+    int front;
+    int rear;
+    int size;
+    int capacity;
+    chunk_t *chunks; // ARRAY of chunks
 } queue_t;
 
 // Function prototypes
